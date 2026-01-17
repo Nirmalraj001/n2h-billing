@@ -91,18 +91,7 @@ export function BillingPOS() {
 
     // Alternative Print Implementation: Open a new window and print ONLY the invoice
     const handlePrintInvoice = (invoice: any) => {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            toast.error("Please allow popups to print");
-            return;
-        }
-
-        // We need to render the InvoiceA4 component to HTML string or mount it in the new window
-        // For simplicity and robustness with styling, we'll write a basic HTML structure and mount the component
-        // But mounting React components in a new window is tricky with contexts. 
-        // A better "Alternative" is an iframe on the same page.
-
-        // Let's use the Iframe approach.
+        // Create an iframe for printing to avoid opening a new window
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         document.body.appendChild(iframe);
@@ -110,7 +99,7 @@ export function BillingPOS() {
         const doc = iframe.contentWindow?.document;
         if (!doc) return;
 
-        // Copy styles
+        // Copy styles from the main document to ensure the invoice looks correct
         const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
             .map(node => node.outerHTML)
             .join("");
@@ -141,14 +130,18 @@ export function BillingPOS() {
                 const root = createRoot(doc.getElementById('print-mount')!);
                 root.render(<InvoiceA4 invoice={invoice} settings={storeSettings} />);
 
-                // Give React a moment to render
+                // Give React a moment to render the component into the iframe
                 setTimeout(() => {
                     iframe.contentWindow?.focus();
                     iframe.contentWindow?.print();
 
-                    // Cleanup after print dialog might be closed (cannot detect easily, but removing iframe after delay is safe-ish or keep it)
-                    // Better to leave it or remove later. We'll remove it after a long timeout.
-                    setTimeout(() => document.body.removeChild(iframe), 60000);
+                    // Cleanup the iframe after a reasonable timeout (1 minute) to ensure print dialog isn't cut off
+                    // Note: We can't detect when the print dialog closes, so a long timeout is safest.
+                    setTimeout(() => {
+                        if (document.body.contains(iframe)) {
+                            document.body.removeChild(iframe);
+                        }
+                    }, 60000);
                 }, 500);
             }
         }, 500);
