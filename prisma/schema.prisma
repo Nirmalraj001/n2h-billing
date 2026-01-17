@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  username  String   @unique
+  password  String
+  name      String?
+  role      String   @default("STAFF") // ADMIN, STAFF
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UnitType {
+  BOX
+  GRAM
+}
+
+model Product {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  costPrice Float
+  mrp       Float
+  unitType  UnitType
+  weight    Float?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoiceItems InvoiceItem[]
+}
+
+model Customer {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  phone     String   @unique
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoices  Invoice[]
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+}
+
+model Invoice {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceNo   String        @unique
+  customer    Customer?     @relation(fields: [customerId], references: [id])
+  customerId  String?       @db.ObjectId
+  items       InvoiceItem[]
+  subtotal    Float
+  discount    Float         @default(0)
+  taxAmount   Float         @default(0)
+  totalAmount Float
+  paymentMode PaymentMode   @default(CASH)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+  invoiceId String  @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id])
+  productId String  @db.ObjectId
+  name      String
+  quantity  Float
+  unitPrice Float
+  total     Float
+}
+
+model StoreSettings {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @default("My Store")
+  address   String?
+  phone     String?
+  email     String?
+  gstin     String?
+  updatedAt DateTime @updatedAt
+}
